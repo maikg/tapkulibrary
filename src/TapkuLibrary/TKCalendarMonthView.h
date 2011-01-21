@@ -42,6 +42,8 @@
 	UILabel *monthYear;
 	UIScrollView *tileBox;
 	BOOL sunday;
+    
+    NSDate *selectedDate;
 
 	id <TKCalendarMonthViewDelegate> delegate;
 	id <TKCalendarMonthViewDataSource> dataSource;

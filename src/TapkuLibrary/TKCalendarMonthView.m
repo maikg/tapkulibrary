@@ -732,6 +732,7 @@
 	[rightArrow release];
 	[tileBox release];
 	[currentTile release];
+    [selectedDate release];
     [super dealloc];
 }
 
@@ -820,6 +821,11 @@
 	
 	
 	monthYear.text = [NSString stringWithFormat:@"%@ %@",[localMonth month],[localMonth year]];
+    
+    // Reselect current date if the selected date's month was set.
+    if ([[selectedDate firstOfMonth] isEqualToDate:[currentTile monthDate]]) {
+        [self selectDate:selectedDate];
+    }
 }
 
 
@@ -845,6 +851,9 @@
 	return [currentTile monthDate];
 }
 - (void) selectDate:(NSDate*)date{
+    [selectedDate release];
+    selectedDate = [date retain];
+    
 	TKDateInformation info = [date dateInformation];
 	
 	NSDate *month = [date firstOfMonth];
