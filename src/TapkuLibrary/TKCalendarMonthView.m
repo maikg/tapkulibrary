@@ -613,6 +613,8 @@
 @property (readonly) UIButton *rightArrow;
 @property (readonly) UIImageView *shadow;
 
+- (void) animationEnded;
+
 @end
 
 
@@ -817,6 +819,11 @@
 	
 	oldTile = currentTile;
 	currentTile = newTile;
+    
+    
+    if (!animated) {
+        [self animationEnded];
+    }
 	
 	
 	
