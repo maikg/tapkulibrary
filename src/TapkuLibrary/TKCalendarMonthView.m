@@ -41,6 +41,7 @@
 - (NSDate*) firstOfMonth;
 - (NSDate*) nextMonth;
 - (NSDate*) previousMonth;
+- (NSInteger)TK_numberOfMonthsSince:(NSDate *)otherDate;
 
 @end
 
@@ -85,6 +86,13 @@
 	info.hour = 0;
 	return [NSDate dateFromDateInformation:info timeZone:[NSTimeZone timeZoneForSecondsFromGMT:0]];
 	
+}
+
+- (NSInteger)TK_numberOfMonthsSince:(NSDate *)otherDate {
+    TKDateInformation infoThis = [self dateInformationWithTimeZone:[NSTimeZone timeZoneForSecondsFromGMT:0]];
+    TKDateInformation infoOther = [otherDate dateInformationWithTimeZone:[NSTimeZone timeZoneForSecondsFromGMT:0]];
+    
+    return (infoThis.year - infoOther.year) * 12 + (infoThis.month - infoOther.month);
 }
 
 @end
@@ -727,31 +735,40 @@
     [super dealloc];
 }
 
-- (void) changeMonthAnimation:(UIView*)sender{
+- (void)setMonth:(NSDate *)month animated:(BOOL)animated {
+    NSInteger monthDelta = [month TK_numberOfMonthsSince:currentTile.monthDate];
+    BOOL isAfterSelectedMonth;
+    if (monthDelta > 0) {
+        isAfterSelectedMonth = YES;
+    }
+    else if (monthDelta < 0) {
+        isAfterSelectedMonth = NO;
+    }
+    else {
+        // Same month, do nothing.
+        return;
+    }
+    
+    TKDateInformation nextInfo = [month dateInformationWithTimeZone:[NSTimeZone timeZoneForSecondsFromGMT:0]];
+	NSDate *localMonth = [NSDate dateFromDateInformation:nextInfo];
 	
-	BOOL isNext = (sender.tag == 1);
-	NSDate *nextMonth = isNext ? [currentTile.monthDate nextMonth] : [currentTile.monthDate previousMonth];
 	
-	TKDateInformation nextInfo = [nextMonth dateInformationWithTimeZone:[NSTimeZone timeZoneForSecondsFromGMT:0]];
-	NSDate *localNextMonth = [NSDate dateFromDateInformation:nextInfo];
-	
-	
-	NSArray *dates = [TKCalendarMonthTiles rangeOfDatesInMonthGrid:nextMonth startOnSunday:sunday];
+	NSArray *dates = [TKCalendarMonthTiles rangeOfDatesInMonthGrid:month startOnSunday:sunday];
 	NSArray *ar = [dataSource calendarMonthView:self marksFromDate:[dates objectAtIndex:0] toDate:[dates lastObject]];
-	TKCalendarMonthTiles *newTile = [[TKCalendarMonthTiles alloc] initWithMonth:nextMonth marks:ar startDayOnSunday:sunday];
+	TKCalendarMonthTiles *newTile = [[TKCalendarMonthTiles alloc] initWithMonth:month marks:ar startDayOnSunday:sunday];
 	[newTile setTarget:self action:@selector(tile:)];
 	
 	
 	
 	int overlap =  0;
 	
-	if(isNext){
+	if(isAfterSelectedMonth){
 		overlap = [newTile.monthDate isEqualToDate:[dates objectAtIndex:0]] ? 0 : 44;
 	}else{
 		overlap = [currentTile.monthDate compare:[dates lastObject]] !=  NSOrderedDescending ? 44 : 0;
 	}
 	
-	float y = isNext ? currentTile.bounds.size.height - overlap : newTile.bounds.size.height * -1 + overlap;
+	float y = isAfterSelectedMonth ? currentTile.bounds.size.height - overlap : newTile.bounds.size.height * -1 + overlap;
 	
 	newTile.frame = CGRectMake(0, y, newTile.frame.size.width, newTile.frame.size.height);
 	[self.tileBox addSubview:newTile];
@@ -759,18 +776,19 @@
 	
 	
 	
-	
-	self.userInteractionEnabled = NO;
-	
-	[UIView beginAnimations:nil context:nil];
-	[UIView setAnimationDelegate:self];
-	[UIView setAnimationCurve:UIViewAnimationCurveEaseInOut];
-	[UIView setAnimationDidStopSelector:@selector(animationEnded)];
-	[UIView setAnimationDuration:0.4];
+	if (animated) {
+        self.userInteractionEnabled = NO;
+        
+        [UIView beginAnimations:nil context:nil];
+        [UIView setAnimationDelegate:self];
+        [UIView setAnimationCurve:UIViewAnimationCurveEaseInOut];
+        [UIView setAnimationDidStopSelector:@selector(animationEnded)];
+        [UIView setAnimationDuration:0.4];
+    }
 	
 	currentTile.alpha = 0.0;
 	
-	if(isNext){
+	if(isAfterSelectedMonth){
 		
 		currentTile.frame = CGRectMake(0, -1 * currentTile.bounds.size.height + overlap, currentTile.frame.size.width, currentTile.frame.size.height);
 		newTile.frame = CGRectMake(0, 1, newTile.frame.size.width, newTile.frame.size.height);
@@ -792,21 +810,24 @@
 	}
 	
 	
-	[UIView commitAnimations];
+    if (animated) {
+        [UIView commitAnimations];
+    }
 	
 	oldTile = currentTile;
 	currentTile = newTile;
 	
 	
 	
-	monthYear.text = [NSString stringWithFormat:@"%@ %@",[localNextMonth month],[localNextMonth year]];
-	
-	
-
+	monthYear.text = [NSString stringWithFormat:@"%@ %@",[localMonth month],[localMonth year]];
 }
+
+
 - (void) changeMonth:(UIButton *)sender{
-	
-	[self changeMonthAnimation:sender];
+	BOOL isNext = (sender.tag == 1);
+	NSDate *month = isNext ? [currentTile.monthDate nextMonth] : [currentTile.monthDate previousMonth];
+	[self setMonth:month animated:YES];
+    
 	if([delegate respondsToSelector:@selector(calendarMonthView:monthDidChange:)])
 		[delegate calendarMonthView:self monthDidChange:currentTile.monthDate];
 
@@ -881,8 +902,9 @@
 		int direction = [[ar lastObject] intValue];
 		UIButton *b = direction > 1 ? self.rightArrow : self.leftArrow;
 		
-		
-		[self changeMonthAnimation:b];
+		BOOL isNext = (b.tag == 1);
+        NSDate *month = isNext ? [currentTile.monthDate nextMonth] : [currentTile.monthDate previousMonth];
+		[self setMonth:month animated:YES];
 		
 		int day = [[ar objectAtIndex:0] intValue];
 		//[currentTile selectDay:day];

@@ -57,6 +57,7 @@
 - (NSDate*) dateSelected;
 - (NSDate*) monthDate;
 - (void) selectDate:(NSDate*)date;
+- (void) setMonth:(NSDate *)month animated:(BOOL)animated;
 - (void) reload;
 
 @end
