@@ -918,9 +918,7 @@
 		int direction = [[ar lastObject] intValue];
 		UIButton *b = direction > 1 ? self.rightArrow : self.leftArrow;
 		
-		BOOL isNext = (b.tag == 1);
-        NSDate *month = isNext ? [currentTile.monthDate nextMonth] : [currentTile.monthDate previousMonth];
-		[self setMonth:month animated:YES];
+        [self changeMonth:b];
 		
 		int day = [[ar objectAtIndex:0] intValue];
 		//[currentTile selectDay:day];
